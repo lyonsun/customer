@@ -1,0 +1,6 @@
+name = Customer Information
+description = Display Customer information recorded in Homedeliveries.
+core = 7.x
+package = HDCRM
+files[] = customer.module
+dependencies[] = homedelivery

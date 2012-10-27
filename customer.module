@@ -1,0 +1,93 @@
+<?php
+/**
+ * Implements hook_menu().
+ */
+function customer_menu() {
+	$items['customer/all'] = array(
+    'title' => 'Customer Information',
+    //'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('customer_phone_unique_autocomplete'),
+    'access arguments' => array('view homedeliverys'),
+    //'file' => 'ajax_example_autocomplete.inc',
+    'weight' => 11,
+  );
+  $items['customer/all/unique_node_autocomplete_callback'] = array(
+    'page callback' => 'customer_phone_unique_node_autocomplete_callback',
+    //'file' => 'ajax_example_autocomplete.inc',
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('view homedeliverys'),
+  );
+  
+  return $items;
+}
+
+/**
+ * A unique autocomplete form which looks up customer information by phone number in the homedelivery table, but must keep track of the aid, because
+ * phone number are certainly not guaranteed to be unique.
+ *
+ * @param $form
+ * @param $form_state
+ * @return array
+ */
+function customer_phone_unique_autocomplete($form, &$form_state) {
+
+  $form['info'] = array(
+    '#markup' => '<div>' . t("Enter customer phone number to searching existing customer information.") . '</div>',
+  );
+
+  $form['phonenumber'] = array(
+    '#type' => 'textfield',
+    '#phonenumber' => t('Enter phone number here:'),
+    // The autocomplete path is provided in hook_menu in ajax_example.module.
+    '#autocomplete_path' => 'customer/all/unique_node_autocomplete_callback',
+  );
+
+  $form['actions'] = array(
+    '#type' => 'actions'
+  );
+
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  );
+
+  return $form;
+}
+
+/**
+ * Submit handler for node lookup unique autocomplete.
+ *
+ * This funtion does not work well at this moment, 
+ * thus, submitting triggers nothing other than set a message saying phone number is found.
+ * @param $form
+ * @param $form_state
+ */
+function customer_phone_unique_autocomplete_submit($form, &$form_state) {
+	drupal_set_message(t('Phone number ' . $form_state['values']['phonenumber'] . ' is found.'));
+	
+	//$phonenumber = homedelivery_load($form_state['values']['phonenumber']);
+  //drupal_set_message(t('You found homedelivery with phone number %phonenumber', array('%phonenumber' => $phonenumber->field_cnumber_value)));
+}
+
+/**
+ * Autocomplete callback for customer information by phone number.
+ *
+ * @param $string
+ *   The string that will be searched.
+ */
+function customer_phone_unique_node_autocomplete_callback($string = "") {
+  $matches = array();
+  if ($string) {
+    $result = db_select('field_data_field_cnumber')
+      ->fields('field_data_field_cnumber', array('entity_id', 'field_cnumber_value'))
+      ->condition('field_cnumber_value', db_like($string) . '%', 'LIKE')
+      ->range(0, 10)
+      ->execute();
+    foreach ($result as $phonenumber) {
+      $matches[$phonenumber->field_cnumber_value] = check_plain($phonenumber->field_cnumber_value);
+    }
+  }
+
+  drupal_json_output($matches);
+}
